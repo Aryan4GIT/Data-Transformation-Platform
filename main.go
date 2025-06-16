@@ -49,16 +49,15 @@ func Init() {
 	}
 	DB = db
 	DB.AutoMigrate(&Log{})
-	fmt.Println("✅ Database connection established successfully")
+	fmt.Println(" Database connection established successfully")
 }
 
-// MIDDLEWARE: LOGGING
 func LoggingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
 		logEntry := Log{
-			Timestamp:   time.Now().Format(time.RFC3339),
+			Timestamp:   time.Now().Format("2006-01-02 15:04:05"),
 			Method:      c.Request.Method,
 			Path:        c.Request.URL.Path,
 			ClientIP:    c.ClientIP(),
@@ -73,12 +72,12 @@ func LoggingMiddleware() gin.HandlerFunc {
 			log.Println("Log saved to database.")
 		}
 
-		// Print to terminal
 		logJSON, _ := json.MarshalIndent(logEntry, "", "  ")
 		fmt.Println(string(logJSON))
 	}
 }
-//auth
+
+// auth
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
