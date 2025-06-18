@@ -32,6 +32,6 @@ func init() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	DB = db
-	DB.AutoMigrate(&models.Log{})
+	DB.AutoMigrate(&models.Log{}, &models.User{})
 	fmt.Println("Database connection established successfully")
 }
