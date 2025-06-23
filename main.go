@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"third_party_integrations/handler"
@@ -10,6 +11,7 @@ import (
 )
 
 func main() {
+	fmt.Println("Server started successfully")
 	router := gin.Default()
 	router.Use(middleware.LoggingMiddleware())
 
@@ -35,9 +37,6 @@ func main() {
 	router.POST("/create-user", handler.CreateUserHandler)
 	router.DELETE("/delete-user/:id", handler.DeleteUserHandler)
 
-	// Google OAuth routes
-	router.GET("/auth/google/login", handler.GoogleLoginHandler)
-	router.GET("/auth/google/callback", handler.GoogleCallbackHandler)
 
 	log.Println("Server starting at https://localhost:3000")
 	err := router.RunTLS(":3000", "cert.pem", "key.pem")
