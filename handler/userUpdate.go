@@ -8,9 +8,116 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var jwtKey = models.JwtSecret
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+}
+
+
+func OAuthTokenHandler(c *gin.Context) {
+	grantType := c.PostForm("grant_type")
+	if grantType != "password" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported_grant_type"})
+		return
+	}
+
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+	if username == "" || password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request"})
+		return
+	}
+
+	var user models.User
+	err := db.DB.Where("username = ?", username).First(&user).Error
+	if err != nil || !checkPasswordHash(password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_grant"})
+		return
+	}
+
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &models.Claims{
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			Subject:   username,
+			Issuer:    "third_party_integrations_oauth2",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "server_error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": tokenString,
+		"token_type":   "bearer",
+		"expires_in":   86400,
+	})
+}
+
+func OAuthIntrospectHandler(c *gin.Context) {
+	tokenString := c.PostForm("token")
+	if tokenString == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request"})
+		return
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusOK, gin.H{"active": false})
+		return
+	}
+
+	claims, ok := token.Claims.(*models.Claims)
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"active": false})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"active":   true,
+		"username": claims.Username,
+		"exp":      claims.ExpiresAt.Unix(),
+		"sub":      claims.Subject,
+		"iss":      claims.Issuer,
+	})
+}
+
+func OAuthUserInfoHandler(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" || len(authHeader) < 8 || authHeader[:7] != "Bearer " {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_token"})
+		return
+	}
+	tokenString := authHeader[7:]
+	token, err := jwt.ParseWithClaims(tokenString, &models.Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_token"})
+		return
+	}
+	claims, ok := token.Claims.(*models.Claims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_token"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"username": claims.Username, "sub": claims.Subject, "iss": claims.Issuer, "exp": claims.ExpiresAt.Unix()})
+}
 
 func LoginHandler(c *gin.Context) {
 	var req models.LoginRequest
@@ -20,8 +127,8 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	var user models.User
-	err := db.DB.Where("username = ? AND password = ?", req.Username, req.Password).First(&user).Error
-	if err != nil {
+	err := db.DB.Where("username = ?", req.Username).First(&user).Error
+	if err != nil || !checkPasswordHash(req.Password, user.Password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
@@ -51,9 +158,15 @@ func CreateUserHandler(c *gin.Context) {
 		return
 	}
 
+	hashedPassword, err := hashPassword(req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+		return
+	}
+
 	user := models.User{
 		Username: req.Username,
-		Password: req.Password,
+		Password: hashedPassword,
 	}
 
 	if err := db.DB.Create(&user).Error; err != nil {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"third_party_integrations/handler"
@@ -11,7 +10,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Server started successfully")
 	router := gin.Default()
 	router.Use(middleware.LoggingMiddleware())
 
@@ -36,7 +34,10 @@ func main() {
 	router.POST("/login", handler.LoginHandler)
 	router.POST("/create-user", handler.CreateUserHandler)
 	router.DELETE("/delete-user/:id", handler.DeleteUserHandler)
-
+	
+	router.POST("/oauth/token", handler.OAuthTokenHandler)
+	router.POST("/oauth/introspect", handler.OAuthIntrospectHandler)
+	router.GET("/oauth/userinfo", handler.OAuthUserInfoHandler)
 
 	log.Println("Server starting at https://localhost:3000")
 	err := router.RunTLS(":3000", "cert.pem", "key.pem")
