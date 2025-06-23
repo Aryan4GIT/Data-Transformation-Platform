@@ -10,25 +10,10 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-var jwtKey = []byte("your_secret_key")
-
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type CreateUserRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type Claims struct {
-	Username string `json:"username"`
-	jwt.RegisteredClaims
-}
+var jwtKey = models.JwtSecret
 
 func LoginHandler(c *gin.Context) {
-	var req LoginRequest
+	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
@@ -42,7 +27,7 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
+	claims := &models.Claims{
 		Username: req.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -60,7 +45,7 @@ func LoginHandler(c *gin.Context) {
 }
 
 func CreateUserHandler(c *gin.Context) {
-	var req CreateUserRequest
+	var req models.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
