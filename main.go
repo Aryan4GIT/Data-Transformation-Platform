@@ -1,47 +1,38 @@
 package main
 
 import (
-	"log"
-
-	"third_party_integrations/handler"
-	"third_party_integrations/middleware"
+	"data_mapping/database"
+	"data_mapping/handlers"
+	"data_mapping/middleware"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+
 	router := gin.Default()
 	router.Use(middleware.LoggingMiddleware())
-
 	router.GET("/", func(c *gin.Context) {
-		c.String(200, "Hello, World!")
+		c.JSON(200, gin.H{
+			"message": "Welcome to the Data Mapping API",
+		})
 	})
+	router.POST("/login", handlers.LoginHandler(database.DB))
 
-	router.GET("/first", func(c *gin.Context) {
-		c.String(200, "First Handler")
-	})
-
-	protected := router.Group("/", middleware.AuthMiddleware())
+	auth := router.Group("/")
+	auth.Use(handlers.JWTAuthMiddleware())
 	{
-		protected.GET("/second", func(c *gin.Context) {
-			c.String(200, "Second Handler")
-		})
-		protected.GET("/third", func(c *gin.Context) {
-			c.String(200, "Third Handler with another function")
-		})
-	}
+		auth.POST("/clients", handlers.CreateClient(database.DB))
+		auth.GET("/clients", handlers.ListClients(database.DB))
+		auth.DELETE("/clients/delete/:id", handlers.DeleteClient(database.DB))
 
-	router.POST("/login", handler.LoginHandler)
-	router.POST("/create-user", handler.CreateUserHandler)
-	router.DELETE("/delete-user/:id", handler.DeleteUserHandler)
-	
-	router.POST("/oauth/token", handler.OAuthTokenHandler)
-	router.POST("/oauth/introspect", handler.OAuthIntrospectHandler)
-	router.GET("/oauth/userinfo", handler.OAuthUserInfoHandler)
+		auth.POST("/clients/:client_id/mappings", handlers.CreateMappings(database.DB))
+		auth.GET("/clients/:client_id/mappings", handlers.GetMappings(database.DB))
+		auth.DELETE("/clients/:client_id/mappings/:mapping_id", handlers.DeleteMappings(database.DB))
 
-	log.Println("Server starting at https://localhost:3000")
-	err := router.RunTLS(":3000", "cert.pem", "key.pem")
-	if err != nil {
-		log.Fatalf("Error starting HTTPS server: %v", err)
+		auth.POST("/clients/:client_id/transform", handlers.TransformHandler(database.DB))
 	}
+	fmt.Println("Starting server on :https://localhost:8080")
+	router.RunTLS(":8080", "cert.pem", "key.pem")
 }

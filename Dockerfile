@@ -9,7 +9,7 @@
     COPY . .
 
     RUN go build -o server .
-    EXPOSE 3000
+    EXPOSE 8080
    
 
     # Command to run the executable

@@ -1,13 +1,12 @@
 package middleware
 
 import (
+	"data_mapping/database"
+	"data_mapping/models"
 	"encoding/json"
 	"fmt"
 	"log"
 	"time"
-
-	"third_party_integrations/db"
-	"third_party_integrations/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +29,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 			Error:       c.Errors.ByType(gin.ErrorTypePrivate).String(),
 		}
 
-		if err := db.DB.Create(&logEntry).Error; err != nil {
+		if err := database.DB.Create(&logEntry).Error; err != nil {
 			log.Println("Failed to save log to database:", err)
 		} else {
 			log.Println("Log saved to database.")
