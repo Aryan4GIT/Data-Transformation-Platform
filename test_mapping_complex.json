@@ -1,0 +1,58 @@
+[
+  {
+    "source_path": ["employment", "salary"],
+    "destination_path": ["job", "annual_salary_usd"],
+    "transform_type": "",
+    "transform_logic": "value != nil ? Math.round(value * 100) / 100 : 0",
+    "priority": 1
+  },
+  {
+    "source_path": ["employment", "startDate"],
+    "destination_path": ["job", "years_at_company"],
+    "transform_type": "",
+    "transform_logic": "value != nil ? (2025 - int(value[:4])) : 0",
+    "priority": 1
+  },
+  {
+    "source_path": ["scores"],
+    "destination_path": ["average_score"],
+    "transform_type": "",
+    "transform_logic": "value != nil ? (value.math + value.english + value.science) / 3 : 0",
+    "priority": 1
+  },
+  {
+    "source_path": ["contacts", "phones"],
+    "destination_path": ["primary_phone"],
+    "transform_type": "",
+    "transform_logic": "value != nil && len(value) > 0 ? value[0] : ''",
+    "priority": 1
+  },
+  {
+    "source_path": ["tags"],
+    "destination_path": ["is_remote"],
+    "transform_type": "",
+    "transform_logic": "value != nil && 'remote' in value ? true : false",
+    "priority": 1
+  },
+  {
+    "source_path": ["address", "city"],
+    "destination_path": ["location", "city_upper"],
+    "transform_type": "",
+    "transform_logic": "value != nil ? value.upper() : ''",
+    "priority": 1
+  },
+  {
+    "source_path": ["active"],
+    "destination_path": ["status"],
+    "transform_type": "",
+    "transform_logic": "value == true ? 'ACTIVE' : 'INACTIVE'",
+    "priority": 1
+  },
+  {
+    "source_path": ["firstName", "lastName"],
+    "destination_path": ["full_name"],
+    "transform_type": "",
+    "transform_logic": "input['firstName'] + ' ' + input['lastName']",
+    "priority": 1
+  }
+]

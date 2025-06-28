@@ -21,6 +21,7 @@ type MappingRule struct {
 	SourcePath      JSONStringList `gorm:"type:jsonb;not null" json:"source_path"`
 	DestinationPath JSONStringList `gorm:"type:jsonb;not null" json:"destination_path"`
 	TransformType   string         `gorm:"not null" json:"transform_type"`
+	TransformLogic  string         `gorm:"type:text" json:"transform_logic"` // New: dynamic logic
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 }

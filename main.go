@@ -32,6 +32,7 @@ func main() {
 		auth.DELETE("/clients/:client_id/mappings/:mapping_id", handlers.DeleteMappings(database.DB))
 
 		auth.POST("/clients/:client_id/transform", handlers.TransformHandler(database.DB))
+		auth.POST("/clients/:client_id/transform/stream", handlers.StreamTransformHandler(database.DB))
 	}
 	fmt.Println("Starting server on :https://localhost:8080")
 	router.RunTLS(":8080", "cert.pem", "key.pem")

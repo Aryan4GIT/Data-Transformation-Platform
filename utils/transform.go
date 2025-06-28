@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/antonmedv/expr"
 )
 
 func Transform(input map[string]interface{}, rules []models.MappingRule) (map[string]interface{}, error) {
@@ -33,7 +35,15 @@ func ApplyRules(input map[string]interface{}, rules []models.MappingRule) map[st
 		if !exists {
 			continue
 		}
-		transformedVal, err := ApplyTransform(val, rule.TransformType)
+		var transformedVal interface{}
+		var err error
+		if rule.TransformLogic != "" {
+			// Evaluate dynamic logic using expr
+			params := map[string]interface{}{"value": val, "input": input}
+			transformedVal, err = expr.Eval(rule.TransformLogic, params)
+		} else {
+			transformedVal, err = ApplyTransform(val, rule.TransformType)
+		}
 		if err == nil {
 			SetNestedValue(output, rule.DestinationPath, transformedVal)
 		}
