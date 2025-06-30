@@ -2,7 +2,9 @@ package utils
 
 import (
 	"data_mapping/models"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -156,4 +158,87 @@ func ApplyTransform(value interface{}, transformType string) (interface{}, error
 	default:
 		return value, nil
 	}
+}
+
+// StreamTransformJSON streams and transforms large client JSONs in real-time.
+func StreamTransformJSON(r io.Reader, w io.Writer, transform func(key string, value interface{}) (string, interface{})) error {
+	dec := json.NewDecoder(r)
+
+	t, err := dec.Token()
+	if err != nil || t != json.Delim('{') {
+		return fmt.Errorf("expected start of object: %v", err)
+	}
+	w.Write([]byte("{"))
+	first := true
+	for dec.More() {
+		keyToken, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		key := keyToken.(string)
+		var value interface{}
+		if err := dec.Decode(&value); err != nil {
+			return err
+		}
+		newKey, newValue := transform(key, value)
+		if !first {
+			w.Write([]byte(","))
+		}
+		first = false
+		keyBytes, _ := json.Marshal(newKey)
+		valueBytes, _ := json.Marshal(newValue)
+		w.Write(keyBytes)
+		w.Write([]byte(":"))
+		w.Write(valueBytes)
+	}
+	t, err = dec.Token()
+	if err != nil || t != json.Delim('}') {
+		return fmt.Errorf("expected end of object: %v", err)
+	}
+	w.Write([]byte("}"))
+	return nil
+}
+
+// StreamTransformJSONWithRules streams and transforms large JSONs using the same rules as the standard transform logic.
+func StreamTransformJSONWithRules(r io.Reader, w io.Writer, rules []models.MappingRule) error {
+	dec := json.NewDecoder(r)
+	t, err := dec.Token()
+	if err != nil || t != json.Delim('{') {
+		return fmt.Errorf("expected start of object: %v", err)
+	}
+	w.Write([]byte("{"))
+	first := true
+	for dec.More() {
+		keyToken, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		key := keyToken.(string)
+		var value interface{}
+		if err := dec.Decode(&value); err != nil {
+			return err
+		}
+		// Use ApplyRules for each top-level object
+		var transformed interface{}
+		if vMap, ok := value.(map[string]interface{}); ok {
+			transformed = ApplyRules(vMap, rules)
+		} else {
+			transformed = value
+		}
+		if !first {
+			w.Write([]byte(","))
+		}
+		first = false
+		keyBytes, _ := json.Marshal(key)
+		valueBytes, _ := json.Marshal(transformed)
+		w.Write(keyBytes)
+		w.Write([]byte(":"))
+		w.Write(valueBytes)
+	}
+	t, err = dec.Token()
+	if err != nil || t != json.Delim('}') {
+		return fmt.Errorf("expected end of object: %v", err)
+	}
+	w.Write([]byte("}"))
+	return nil
 }
