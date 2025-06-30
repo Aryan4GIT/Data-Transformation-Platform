@@ -21,7 +21,7 @@ type LoginResponse struct {
 }
 
 func AuthenticateUser(username, password string) bool {
-	return username == "admin" && password == "babu"
+	return username == "admin" && password == "password"
 }
 
 func LoginHandler(db *gorm.DB) gin.HandlerFunc {
