@@ -1,0 +1,74 @@
+{
+  "applicantDetails": [
+    {
+      "firstName": "John",
+      "lastName": "Doe",
+      "dob": "1990-01-15",
+      "contacts": {
+        "email": "john.doe1@example.com",
+        "phones": ["1234567890", "0987654321"]
+      },
+      "address": {
+        "street": "123 Main St",
+        "city": "Metropolis",
+        "zip": "10001"
+      },
+      "employment": {
+        "company": "Wayne Enterprises",
+        "position": "Engineer",
+        "startDate": "2015-06-01",
+        "salary": 95000.75
+      },
+      "tags": ["veteran", "remote"],
+      "scores": {"math": 88, "english": 92, "science": 85},
+      "active": true
+    },
+    {
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "dob": "1985-05-20",
+      "contacts": {
+        "email": "jane.smith2@example.com",
+        "phones": ["2345678901"]
+      },
+      "address": {
+        "street": "456 Elm St",
+        "city": "Gotham",
+        "zip": "10002"
+      },
+      "employment": {
+        "company": "LexCorp",
+        "position": "Manager",
+        "startDate": "2010-09-15",
+        "salary": 120000.00
+      },
+      "tags": ["onsite"],
+      "scores": {"math": 91, "english": 89, "science": 94},
+      "active": false
+    },
+    {
+      "firstName": "Alice",
+      "lastName": "Johnson",
+      "dob": "1992-07-10",
+      "contacts": {
+        "email": "alice.johnson3@example.com",
+        "phones": ["3456789012", "2109876543"]
+      },
+      "address": {
+        "street": "789 Oak St",
+        "city": "Star City",
+        "zip": "10003"
+      },
+      "employment": {
+        "company": "Queen Industries",
+        "position": "Analyst",
+        "startDate": "2018-01-10",
+        "salary": 78000.50
+      },
+      "tags": ["remote", "contract"],
+      "scores": {"math": 95, "english": 90, "science": 88},
+      "active": true
+    }
+    
+  ]
+}
