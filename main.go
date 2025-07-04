@@ -1,38 +1,72 @@
 package main
 
 import (
+	"data_mapping/config"
 	"data_mapping/database"
 	"data_mapping/handlers"
 	"data_mapping/middleware"
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	if config.AppConfig.LogLevel == "debug" {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
-	router := gin.Default()
+	router := gin.New()
+
+	// Add middleware
+	router.Use(gin.Logger())
+	router.Use(middleware.ErrorHandlerMiddleware())
+	router.Use(middleware.SecurityMiddleware())
+	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.LoggingMiddleware())
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "Data Mapping API",
+			"version": "1.0.0",
+		})
+	})
+
+	// Welcome endpoint
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Welcome to the Data Mapping API",
+			"version": "1.0.0",
+			"docs":    "/docs",
 		})
 	})
-	router.POST("/login", handlers.LoginHandler(database.DB))
 
+	// Authentication
+	router.POST("/login", handlers.LoginHandler())
+
+	// Protected routes
 	auth := router.Group("/")
 	auth.Use(handlers.JWTAuthMiddleware())
 	{
+		// Client management
 		auth.POST("/clients", handlers.CreateClient(database.DB))
 		auth.GET("/clients", handlers.ListClients(database.DB))
-		auth.DELETE("/clients/delete/:id", handlers.DeleteClient(database.DB))
-
+		auth.DELETE("/clients/:id", handlers.DeleteClient(database.DB))
 		auth.POST("/clients/:client_id/mappings", handlers.CreateMappings(database.DB))
 		auth.GET("/clients/:client_id/mappings", handlers.GetMappings(database.DB))
-		auth.DELETE("/clients/:client_id/mappings/:mapping_id", handlers.DeleteMappings(database.DB))
+		auth.DELETE("/mappings/:mapping_id", handlers.DeleteMappings(database.DB))
 
 		auth.POST("/clients/:client_id/transform", handlers.UnifiedTransformHandler(database.DB))
 	}
-	fmt.Println("Starting server on :https://localhost:8080")
-	router.RunTLS(":8080", "cert.pem", "key.pem")
+
+	serverAddr := ":" + config.AppConfig.ServerPort
+	fmt.Printf("Starting server on https://localhost%s\n", serverAddr)
+
+	if err := router.RunTLS(serverAddr, config.AppConfig.CertFilePath, config.AppConfig.KeyFilePath); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

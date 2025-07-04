@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
 var jwtSecret = []byte("your_secret_key")
@@ -24,7 +23,7 @@ func AuthenticateUser(username, password string) bool {
 	return username == "admin" && password == "password"
 }
 
-func LoginHandler(db *gorm.DB) gin.HandlerFunc {
+func LoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {

@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"data_mapping/models"
+	"data_mapping/utils"
 	"net/http"
 	"strconv"
-
-	"data_mapping/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -12,16 +12,40 @@ import (
 
 func CreateClient(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var client models.Client
-		if err := c.ShouldBindJSON(&client); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		var req models.CreateClientRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Invalid request body",
+				"details": err.Error(),
+			})
 			return
 		}
+
+		// Validate the request
+		if err := utils.ValidateStruct(req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Validation failed",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		client := models.Client{
+			Name: req.Name,
+		}
+
 		if result := db.Create(&client); result.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to create client",
+				"details": result.Error.Error(),
+			})
 			return
 		}
-		c.JSON(http.StatusCreated, client)
+
+		c.JSON(http.StatusCreated, gin.H{
+			"success": true,
+			"data":    client,
+		})
 	}
 }
 
