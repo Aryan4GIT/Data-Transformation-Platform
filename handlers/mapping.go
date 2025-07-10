@@ -101,10 +101,14 @@ func GetMappings(db *gorm.DB) gin.HandlerFunc {
 
 func DeleteMappings(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clientID := c.Param("client_id")
-		result := db.Where("client_id = ?", clientID).Delete(&models.MappingRule{})
+		mappingID := c.Param("mapping_id")
+		result := db.Delete(&models.MappingRule{}, mappingID)
 		if result.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+			return
+		}
+		if result.RowsAffected == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Mapping rule not found"})
 			return
 		}
 		c.Status(http.StatusNoContent)

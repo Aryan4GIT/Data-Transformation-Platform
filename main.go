@@ -64,9 +64,16 @@ func main() {
 	}
 
 	serverAddr := ":" + config.AppConfig.ServerPort
-	fmt.Printf("Starting server on https://localhost%s\n", serverAddr)
 
-	if err := router.RunTLS(serverAddr, config.AppConfig.CertFilePath, config.AppConfig.KeyFilePath); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	if config.AppConfig.DevelopmentMode {
+		fmt.Printf("Starting server in DEVELOPMENT mode on http://localhost%s\n", serverAddr)
+		if err := router.Run(serverAddr); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	} else {
+		fmt.Printf("Starting server on https://localhost%s\n", serverAddr)
+		if err := router.RunTLS(serverAddr, config.AppConfig.CertFilePath, config.AppConfig.KeyFilePath); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
 	}
 }
