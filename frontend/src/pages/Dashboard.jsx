@@ -4,6 +4,7 @@ import { clientsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalClients: 0,

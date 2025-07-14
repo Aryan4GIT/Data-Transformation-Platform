@@ -3,9 +3,11 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import kugelblitzLogo from '../assets/logo.jpg';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -40,11 +42,11 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-            <LogIn className="h-6 w-6 text-white" />
+          <div className="mx-auto mb-6">
+            <img src={kugelblitzLogo} alt="Kugelblitz" className="h-12 w-auto mx-auto" />
           </div>
-          <CardTitle className="text-2xl font-bold">Sign in to Data Mapping API</CardTitle>
-          <CardDescription>Enter your credentials to access the dashboard</CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-900">Welcome Back</CardTitle>
+          <CardDescription className="text-gray-600">Sign in to your account to continue</CardDescription>
         </CardHeader>
         
         <CardContent>

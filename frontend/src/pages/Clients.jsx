@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Settings, AlertCircle, Info, Code, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Settings, AlertCircle, Info, Code, Save, X, Upload, Download, FileText } from 'lucide-react';
 import { clientsAPI, mappingAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,10 @@ const Clients = () => {
     required: false
   });
   const [savingMapping, setSavingMapping] = useState(false);
+  const [showBulkMappingForm, setShowBulkMappingForm] = useState(false);
+  const [bulkMappingText, setBulkMappingText] = useState('');
+  const [savingBulkMapping, setSavingBulkMapping] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadClients();
@@ -122,6 +126,140 @@ const Clients = () => {
     } finally {
       setSavingMapping(false);
     }
+  };
+
+  const handleBulkCreateMapping = async (e) => {
+    e.preventDefault();
+    if (!selectedClient || !bulkMappingText.trim()) return;
+
+    setSavingBulkMapping(true);
+    try {
+      // Parse the bulk mapping text - expect JSON array format
+      const bulkMappings = JSON.parse(bulkMappingText);
+      
+      if (!Array.isArray(bulkMappings)) {
+        throw new Error('Expected an array of mapping rules');
+      }
+
+      // Validate and transform each mapping rule
+      const transformedMappings = bulkMappings.map((mapping, index) => {
+        const required = ['source_path', 'destination_path', 'transform_type'];
+        for (const field of required) {
+          if (!mapping[field]) {
+            throw new Error(`Missing required field '${field}' in mapping rule ${index + 1}`);
+          }
+        }
+
+        return {
+          source_path: Array.isArray(mapping.source_path) 
+            ? mapping.source_path 
+            : mapping.source_path.split('.').filter(p => p.trim()),
+          destination_path: Array.isArray(mapping.destination_path) 
+            ? mapping.destination_path 
+            : mapping.destination_path.split('.').filter(p => p.trim()),
+          transform_type: mapping.transform_type,
+          transform_logic: mapping.transform_logic || '',
+          default_value: mapping.default_value || '',
+          required: mapping.required || false
+        };
+      });
+
+      await mappingAPI.create(selectedClient.id, transformedMappings);
+      toast.success(`Successfully created ${transformedMappings.length} mapping rules`);
+      setShowBulkMappingForm(false);
+      setBulkMappingText('');
+      loadMappings(selectedClient.id);
+    } catch (error) {
+      console.error('Bulk mapping error:', error);
+      if (error.name === 'SyntaxError') {
+        toast.error('Invalid JSON format. Please check your syntax.');
+      } else {
+        toast.error(error.message || 'Failed to create bulk mapping rules');
+      }
+    } finally {
+      setSavingBulkMapping(false);
+    }
+  };
+
+  const generateBulkMappingTemplate = () => {
+    const template = [
+      {
+        "source_path": "applicantDetails.0.entityName",
+        "destination_path": "applicant_name",
+        "transform_type": "copy",
+        "transform_logic": "",
+        "default_value": "",
+        "required": true
+      },
+      {
+        "source_path": "applicantDetails.0.mobileNo",
+        "destination_path": "applicant_mobile",
+        "transform_type": "copy",
+        "transform_logic": "",
+        "default_value": "",
+        "required": true
+      },
+      {
+        "source_path": "applicantDetails.0.gender",
+        "destination_path": "applicant_gender",
+        "transform_type": "mapGender",
+        "transform_logic": "",
+        "default_value": "",
+        "required": false
+      }
+    ];
+    setBulkMappingText(JSON.stringify(template, null, 2));
+  };
+
+  const exportMappingRules = () => {
+    if (mappings.length === 0) {
+      toast.error('No mapping rules to export');
+      return;
+    }
+
+    const exportData = mappings.map(mapping => ({
+      source_path: mapping.source_path.join('.'),
+      destination_path: mapping.destination_path.join('.'),
+      transform_type: mapping.transform_type,
+      transform_logic: mapping.transform_logic,
+      default_value: mapping.default_value,
+      required: mapping.required
+    }));
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedClient?.name || 'client'}_mapping_rules.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Mapping rules exported successfully');
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json') {
+      toast.error('Please upload a JSON file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result;
+        // Validate JSON format
+        JSON.parse(content);
+        setBulkMappingText(content);
+        toast.success('File uploaded successfully');
+      } catch (error) {
+        toast.error('Invalid JSON file format');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const openExpressionHelp = () => {
@@ -296,11 +434,28 @@ const Clients = () => {
                   Expression Help
                 </Button>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportMappingRules}
+                  disabled={mappings.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export Rules
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBulkMappingForm(true)}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Bulk Import
+                </Button>
+                <Button
                   onClick={() => setShowMappingForm(true)}
                   size="sm"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Mapping Rule
+                  Add Rule
                 </Button>
               </div>
             </div>
@@ -446,6 +601,116 @@ const Clients = () => {
                           <>
                             <Save className="h-4 w-4 mr-1" />
                             Save Rule
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Bulk Mapping Form */}
+            {showBulkMappingForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    Bulk Import Mapping Rules
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowBulkMappingForm(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    Import multiple mapping rules at once using JSON format. You can also export existing rules as a template.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleBulkCreateMapping} className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium">
+                          Mapping Rules JSON <span className="text-red-500">*</span>
+                        </label>
+                        <div className="flex space-x-2">
+                          <input
+                            type="file"
+                            accept=".json"
+                            onChange={handleFileUpload}
+                            ref={fileInputRef}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Upload File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateBulkMappingTemplate}
+                          >
+                            <Code className="h-4 w-4 mr-1" />
+                            Load Template
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        value={bulkMappingText}
+                        onChange={(e) => setBulkMappingText(e.target.value)}
+                        placeholder="Paste your mapping rules JSON here..."
+                        rows={15}
+                        className="font-mono text-sm"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Expected format: Array of objects with source_path, destination_path, transform_type, etc.
+                        You can upload a JSON file or paste the content directly.
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">Required Fields:</h4>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• <code>source_path</code> - Path in source data (string or array)</li>
+                        <li>• <code>destination_path</code> - Path in output data (string or array)</li>
+                        <li>• <code>transform_type</code> - Type of transformation (copy, toString, mapGender, etc.)</li>
+                        <li>• <code>transform_logic</code> - Optional logic for expression transforms</li>
+                        <li>• <code>default_value</code> - Optional default value</li>
+                        <li>• <code>required</code> - Whether field is required (boolean)</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowBulkMappingForm(false)}
+                        disabled={savingBulkMapping}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={savingBulkMapping || !bulkMappingText.trim()}
+                      >
+                        {savingBulkMapping ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Importing...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-1" />
+                            Import Rules
                           </>
                         )}
                       </Button>

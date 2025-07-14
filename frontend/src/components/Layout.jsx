@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Users, Shuffle, Settings, Home, HelpCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import kugelblitzLogo from '../assets/logo.jpg';
 
 const Layout = ({ children }) => {
   const { logout, user } = useAuth();
@@ -27,7 +29,7 @@ const Layout = ({ children }) => {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 shrink-0 items-center px-6 border-b">
-            <h1 className="text-xl font-bold">Data Mapping API</h1>
+            <img src={kugelblitzLogo} alt="Kugelblitz" className="h-8 w-auto" />
           </div>
           
           {/* Navigation */}
