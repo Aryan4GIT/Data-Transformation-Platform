@@ -157,11 +157,6 @@ func ApplyRules(input map[string]interface{}, rules []models.MappingRule) map[st
 	}
 	return output
 }
-
-// ...existing code...
-
-// All transformation logic should be handled via expressions from the database.
-// This function is now a no-op and only returns the value as-is.
 func ApplyTransform(value interface{}, transformType string) (interface{}, error) {
 	return value, nil
 }

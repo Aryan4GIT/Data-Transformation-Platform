@@ -20,14 +20,13 @@ func main() {
 
 	router := gin.New()
 
-	// Add middleware
+	
 	router.Use(gin.Logger())
 	router.Use(middleware.ErrorHandlerMiddleware())
 	router.Use(middleware.SecurityMiddleware())
 	router.Use(middleware.CORSMiddleware())
 	router.Use(middleware.LoggingMiddleware())
 
-	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "healthy",
@@ -36,7 +35,6 @@ func main() {
 		})
 	})
 
-	// Welcome endpoint
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Welcome to the Data Mapping API",
@@ -45,7 +43,6 @@ func main() {
 		})
 	})
 
-	// Authentication
 	router.POST("/login", handlers.LoginHandler())
 
 	// Protected routes
